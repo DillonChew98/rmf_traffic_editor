@@ -49,6 +49,7 @@
 #include "add_param_dialog.h"
 #include "building_dialog.h"
 #include "editor.h"
+#include "generate_dialog.h"
 #include "layer_dialog.h"
 #include "layer_table.h"
 #include "level_dialog.h"
@@ -403,6 +404,7 @@ Editor::Editor()
   create_tool_button(TOOL_ADD_ROI, ":icons/roi.svg", "Add region of interest");
   create_tool_button(TOOL_EDIT_POLYGON, "", "Edit Polygon (E)");
   create_tool_button(TOOL_ADD_HUMAN_LANE, "", "Add Human Lane with width");
+  create_tool_button(TOOL_GENERATE, "", "Generate vertices");
 
   connect(
     tool_button_group,
@@ -932,6 +934,7 @@ void Editor::mouse_event(const MouseType t, QMouseEvent* e)
     case TOOL_ADD_FIDUCIAL: mouse_add_fiducial(t, e, p); break;
     case TOOL_ADD_ROI:      mouse_add_roi(t, e, p); break;
     case TOOL_ADD_HUMAN_LANE: mouse_add_human_lane(t, e, p); break;
+    case TOOL_GENERATE:     mouse_generate(t, e, p); break;
 
     default: break;
   }
@@ -1016,6 +1019,9 @@ void Editor::keyPressEvent(QKeyEvent* e)
     case Qt::Key_O:
       tool_button_group->button(TOOL_ADD_MODEL)->click();
       break;
+    case Qt::Key_G:
+      tool_button_group->button(TOOL_GENERATE)->click();
+      break;
     case Qt::Key_R:
       tool_button_group->button(TOOL_ROTATE)->click();
       break;
@@ -1073,6 +1079,7 @@ const QString Editor::tool_id_to_string(const int id)
     case TOOL_EDIT_POLYGON: return "&edit polygon";
     case TOOL_ADD_HUMAN_LANE: return "add human lane";
     case TOOL_ADD_FEATURE: return "add &feature";
+    case TOOL_GENERATE: return"generate &vertices";
     default: return "unknown tool ID";
   }
 }
@@ -1123,6 +1130,18 @@ void Editor::tool_toggled(int id, bool checked)
       break;
   }
 
+  if (tool_id == TOOL_GENERATE)
+  {
+    GenerateDialog dialog(this, building);
+    if (dialog.exec() == QDialog::Accepted)
+    {
+      statusBar()->showMessage("Edit parameters to generate vertices and lanes.");
+    }
+    else 
+      tool_button_group->button(TOOL_SELECT)->click();
+
+  }
+
   // execute dialogs as needed
   if (tool_id == TOOL_ADD_MODEL)
   {
@@ -1150,7 +1169,7 @@ void Editor::tool_toggled(int id, bool checked)
         }
       }
     }
-    else
+    else  
       tool_button_group->button(TOOL_SELECT)->click();// back to select mode
   }
 }
@@ -2280,6 +2299,14 @@ void Editor::mouse_add_model(
         building.levels[level_idx].drawing_meters_per_pixel);
     }
     mouse_motion_model->setPos(p.x(), p.y());
+  }
+}
+
+void Editor::mouse_generate(
+  const MouseType t, QMouseEvent*, const QPointF& p)
+{
+  if (t == MOUSE_PRESS)
+  {
   }
 }
 

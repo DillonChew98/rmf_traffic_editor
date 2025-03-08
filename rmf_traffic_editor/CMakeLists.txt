@@ -12,6 +12,7 @@ find_package(Ceres REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Qt5 COMPONENTS Widgets Concurrent Test Network REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(floorplan_annotator REQUIRED)
 
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 # set(CMAKE_VERBOSE_MAKEFILE TRUE)
@@ -57,6 +58,7 @@ set(gui_sources
   gui/editor.cpp
   gui/editor_model.cpp
   gui/fiducial.cpp
+  gui/generate_dialog.cpp
   gui/graph.cpp
   gui/layer.cpp
   gui/layer_dialog.cpp
@@ -111,6 +113,11 @@ set(gui_sources
 add_library(
   gui_lib STATIC
   ${gui_sources})
+
+ament_target_dependencies(
+  gui_lib
+  floorplan_annotator
+)
 
 target_link_libraries(
   gui_lib
