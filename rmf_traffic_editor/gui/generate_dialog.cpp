@@ -59,7 +59,36 @@ GenerateDialog::GenerateDialog(QWidget* parent, Building& _building)
     &QAbstractButton::clicked,
     this,
     &GenerateDialog::inference_button_clicked);
+
+  QHBoxLayout* vertices_button_hbox = new QHBoxLayout;
+  vertices_button = new QPushButton("Generate vertices", this);
+  vertices_button_hbox->addWidget(vertices_button);
+
+  QHBoxLayout* pixel_dist = new QHBoxLayout;
+  pixel_dist->addWidget(new QLabel("x,y pixel distance between each vertex"));
+
+  QHBoxLayout* x_hbox = new QHBoxLayout;
+  x_pixels = new QLineEdit(QString::number(8), this);
+  x_hbox->addWidget(new QLabel("x pixel distance"));
+  x_hbox->addWidget(x_pixels);
+
+  QHBoxLayout* y_hbox = new QHBoxLayout;
+  y_pixels = new QLineEdit(QString::number(8), this);
+  y_hbox->addWidget(new QLabel("y pixel distance"));
+  y_hbox->addWidget(y_pixels);
+
+  connect(
+    cancel_button,
+    &QAbstractButton::clicked,
+    this,
+    &QDialog::reject);
   
+    connect(
+      vertices_button,
+      &QAbstractButton::clicked,
+      this,
+      &GenerateDialog::vertex_gen_button_clicked);
+
   // formatting QDialog box  
   QVBoxLayout* top_vbox = new QVBoxLayout;
   top_vbox->addLayout(model);
@@ -67,6 +96,10 @@ GenerateDialog::GenerateDialog(QWidget* parent, Building& _building)
   top_vbox->addLayout(outfile_hbox);
   top_vbox->addLayout(colorize_postprocess);
   top_vbox->addLayout(infer_hbox);
+  top_vbox->addLayout(x_hbox);
+  top_vbox->addLayout(y_hbox);
+  top_vbox->addLayout(pixel_dist);
+  top_vbox->addLayout(vertices_button_hbox);
   top_vbox->addLayout(bottom_buttons_hbox);
   setLayout(top_vbox);
 }
@@ -131,7 +164,7 @@ void GenerateDialog::inference_button_clicked()
   auto postprocess = postprocess_box->checkState() == Qt::Unchecked ? 0 : 1;
   auto http_ptr = std::make_unique<floorplan_annotator::utils::CurlCommunicator>();
   auto state = std::async(std::launch::async, &floorplan_annotator::utils::CurlCommunicator::post_request, std::move(http_ptr), 
-    infile_edit->displayText().toStdString() ,outfile_edit->displayText().toStdString(), 
+    infile_edit->displayText().toStdString(), outfile_edit->displayText().toStdString(), 
     color, postprocess);
   auto curl_result = state.get();
   if (curl_result == CurlStatus::OK)
@@ -147,7 +180,49 @@ void GenerateDialog::inference_button_clicked()
       this,
       "Failed",
       "Inference failed! Check if the model's docker container is running!");
-  }  
+  }
+}
+
+void GenerateDialog::vertex_gen_button_clicked()
+{
+  if (!file_exists(outfile_edit->displayText()))
+  {
+    QMessageBox::critical(
+      this,
+      "Failed",
+      "Invalid output file path! Unable to generate vertices!");
+    return;
+  }
+  if (x_pixels->displayText().toDouble() == 0 || y_pixels->displayText().toDouble() == 0) 
+  {
+    QMessageBox::critical(
+      this,
+      "Failed",
+      "Invalid pixel size!");
+    return;
+  }
+  accept();
+}
+
+double GenerateDialog::get_x_pixel_dist() const
+{
+  return x_pixels->displayText().toDouble();
+}
+
+double GenerateDialog::get_y_pixel_dist() const
+{
+  return y_pixels->displayText().toDouble();
+}
+
+std::string GenerateDialog::get_output_filepath() const
+{
+  return outfile_edit->displayText().toStdString();
+}
+
+bool GenerateDialog::file_exists(const QString & path)
+{
+  QFileInfo file(path);
+  return file.exists() && file.isFile();
 }
 
 GenerateDialog::~GenerateDialog()

@@ -45,6 +45,7 @@
 #include "actions/delete.h"
 #include "actions/polygon_add_vertex.h"
 #include "actions/polygon_remove_vertices.h"
+#include "floorplan_annotator/feature_detection.hpp"
 
 #include "add_param_dialog.h"
 #include "building_dialog.h"
@@ -934,7 +935,7 @@ void Editor::mouse_event(const MouseType t, QMouseEvent* e)
     case TOOL_ADD_FIDUCIAL: mouse_add_fiducial(t, e, p); break;
     case TOOL_ADD_ROI:      mouse_add_roi(t, e, p); break;
     case TOOL_ADD_HUMAN_LANE: mouse_add_human_lane(t, e, p); break;
-    case TOOL_GENERATE:     mouse_generate(t, e, p); break;
+    case TOOL_GENERATE:     break;
 
     default: break;
   }
@@ -1132,14 +1133,24 @@ void Editor::tool_toggled(int id, bool checked)
 
   if (tool_id == TOOL_GENERATE)
   {
+    statusBar()->showMessage("Edit parameters to generate vertices and lanes.");
     GenerateDialog dialog(this, building);
     if (dialog.exec() == QDialog::Accepted)
     {
-      statusBar()->showMessage("Edit parameters to generate vertices and lanes.");
+      floorplan_annotator::FeatureDetection handle(dialog.get_output_filepath());
+      auto room_vertices = handle.GetRoomVertices(dialog.get_x_pixel_dist(),dialog.get_y_pixel_dist());
+      for (const auto& [x,y] : room_vertices) {
+        undo_stack.push(
+          new AddVertexCommand(
+            &building,
+            level_idx,
+            x,
+            y));
+      }
+      create_scene();
     }
     else 
       tool_button_group->button(TOOL_SELECT)->click();
-
   }
 
   // execute dialogs as needed
@@ -2299,14 +2310,6 @@ void Editor::mouse_add_model(
         building.levels[level_idx].drawing_meters_per_pixel);
     }
     mouse_motion_model->setPos(p.x(), p.y());
-  }
-}
-
-void Editor::mouse_generate(
-  const MouseType t, QMouseEvent*, const QPointF& p)
-{
-  if (t == MOUSE_PRESS)
-  {
   }
 }
 
