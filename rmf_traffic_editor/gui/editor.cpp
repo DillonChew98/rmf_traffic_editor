@@ -1139,7 +1139,7 @@ void Editor::tool_toggled(int id, bool checked)
     {
       floorplan_annotator::FeatureDetection handle(dialog.get_output_filepath());
       auto room_vertices = handle.GetRoomVertices(dialog.get_x_pixel_dist(),dialog.get_y_pixel_dist());
-      for (const auto& [x,y] : room_vertices) {
+      for (const auto & [x,y] : room_vertices) {
         undo_stack.push(
           new AddVertexCommand(
             &building,
@@ -1147,6 +1147,31 @@ void Editor::tool_toggled(int id, bool checked)
             x,
             y));
       }
+      auto doors = handle.GetDoors();
+      for (const auto & door : doors) {
+        undo_stack.push(
+          new AddVertexCommand(
+            &building,
+            level_idx,
+            door.cx,
+            door.cy));
+        latest_add_edge = new AddEdgeCommand(
+          &building,
+          level_idx,
+          rendering_options);
+        clicked_idx = latest_add_edge->set_first_point(
+          door.start.first,
+          door.start.second);
+        latest_add_edge->set_edge_type(Edge::DOOR);
+        prev_clicked_idx = clicked_idx;
+        clicked_idx =
+          latest_add_edge->set_second_point(door.end.first, door.end.second);
+        undo_stack.push(latest_add_edge);
+        clicked_idx = -1;
+        latest_add_edge = NULL;
+        prev_clicked_idx = clicked_idx;
+      }
+      tool_button_group->button(TOOL_SELECT)->click();
       create_scene();
     }
     else 
